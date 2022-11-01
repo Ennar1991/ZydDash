@@ -10,6 +10,8 @@ Used tools are:
 * Android's own bluetooth HCI logging ability, turn on in the developer options
 * wireshark for decoding HCI log files
 * ePowerFun app
+* HobbyWing/Zydtech UniScooter app
+* HobbyWing HW Link V2 app
 
 ## BLE telemetry
 The scooter exposes two custom services. I will separate them into 'high level data' and 'low level data'. Both services are split into two characteristics, one for writing a request and one for reading back the result.
@@ -26,21 +28,21 @@ I have found the following commands to work:
 * AT+PWD[123456] 
   * Asks to check if the 6-digit password provided in the [] brackets is correct. There is no real security or access control provided by this password, it is only a placebo for the app.
   * Response type 1: `OK+PWD:Y` (password is correct)
-  * Response type 2: `OK+PWD:N` (password is not correct and connection is terminated)
+  * Response type 2: `OK+PWD:N` (password is not correct and connection is subsequently terminated)
 * AT+PWDM[123456]
   * Changes the password to the 6-digit password provided in the [] brackets. No knowledge of the old password is required to do this.
-*AT+NAME[NewName]
-  * Changes the scooter's name to the new name provided in the [] brackets. No knowledge of the password is required to do this. Renaming the scooter to something not starting with HW or e.g. ePF can break compatibility with some vendor apps that are looking for names starting with "their" abbreviation.
+* AT+NAME[NewName]
+  * Changes the scooter's name to the new name provided in the [] brackets. No knowledge of the password is required to do this. Renaming the scooter to something not starting with HW_ (HobbyWing) or e.g. ePF (ePowerFun) can break compatibility with some vendor's apps that are looking for names starting with "their" abbreviation.
 
 ### Low level data service
-UUID beginning with 0000f1f0
+UUID beginning with `0000f1f0`
 
-Char 1 (Client-receive) UUID beginning with 0000f1f2
+Char 1 (Client-receive) UUID beginning with `0000f1f2`
 
-Char 2 (Client-transmit) UUID beginning with 0000f1f1
+Char 2 (Client-transmit) UUID beginning with `0000f1f1`
 
 
-Here lie the really interesting bits. Sending any hex value to characteristic 0000f1f1 will trigger a burst of twelve notifications, sent on characteristic 0000f1f2. Looking closely, these are two different but repeating data structures.
+Here lie the really interesting bits. Sending any hex value to characteristic `0000f1f1` will trigger a burst of twelve notifications, sent on characteristic `0000f1f2`. Looking closely, these are two different but repeating data structures.
 
 Sending a protocol conform data string, you can configure the three speeds (for the three selectable 'gears'), light on/off, reset the trip distance counter, lock/unlock the scooter, select a gear.
 
@@ -76,7 +78,7 @@ The app will sometimes send other kinds of requests that I haven't fully underst
 
 #### Scooter response to control/telemetry request
 
-The scooter will always respond with a burst of notifications, regardless of what is sent on characteristic 0000f1f1.
+The scooter will always respond with a burst of notifications, regardless of what is sent on characteristic `0000f1f1`.
 The response will be divided into two distinct types of packages, although longer, with an identical protocol to the app request.
 
 ##### Packet type 1
