@@ -139,7 +139,7 @@ Writing registers is likely achieved with Function Code 06 (write single holding
 The scooter's display, marked HW6173_LCD1_V1.4 has an on-board BLE module (chip label not readable), supported by a 8051 based "CMS8S5880" microcotroller. I haven't bothered yet to reverse engineer the entire pcb as it isn't needed for my purpose.
 The pinout of it's 4-pin connector to the motor driver is as follows:
 Pin | 1 | 2 | 3 | 4
---- | --- | --- | ---
+--- | --- | --- | --- | ---
 Label | TX | - | + | KEY
 Function | Combined RX/TX | GND | switched positive Power Supply | Button (short to - or +)
 
