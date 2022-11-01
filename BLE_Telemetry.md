@@ -12,12 +12,15 @@ Used tools are:
 * ePowerFun app
 
 ## BLE telemetry
-The scooter exposes two custom services, I will separate them into 'high level data' and 'low level data'. Both services are split into two characteristics, one for writing a request and one for reading back the result.
+The scooter exposes two custom services. I will separate them into 'high level data' and 'low level data'. Both services are split into two characteristics, one for writing a request and one for reading back the result.
 
 ### High level data service
 UUID beginning with 0000f2f0
+
 Char 1 (Client-transmit F2F1) UUID beginning with: 0000f2f1
+
 Char 1 (Client-receive F2F2) UUID beginning with: 0000f2f2
+
 
 I have found the following commands to work:
 * AT+PWD[123456] 
@@ -31,10 +34,14 @@ I have found the following commands to work:
 
 ### Low level data service
 UUID beginning with 0000f1f0
+
 Char 1 (Client-receive) UUID beginning with 0000f1f2
+
 Char 2 (Client-transmit) UUID beginning with 0000f1f1
 
+
 Here lie the really interesting bits. Sending any hex value to characteristic 0000f1f1 will trigger a burst of twelve notifications, sent on characteristic 0000f1f2. Looking closely, these are two different but repeating data structures.
+
 Sending a protocol conform data string, you can configure the three speeds (for the three selectable 'gears'), light on/off, reset the trip distance counter, lock/unlock the scooter, select a gear.
 
 #### App control/telemetry request
@@ -122,26 +129,33 @@ Byte | Value | Explanation, function
 #### Special commands/Upgrade mode
 
 Sending a special control request configures the display into "UF" mode, usually only seen when updating the firmware. This also happens with the Uniscooter app when changing the parameters for acceleration and brake response:
+
 `a5 00 ff 00 00 00 00 5a`
 
 To get out of "UF" mode, send:
+
 `a5 ff 00 00 00 00 00 5a`
 
 while in "UF" mode, the app seems to be directly communicating with the motor driver. This is indicated by the address changing and the protocol resembling 16-bit MODBUS even more:
 
 Modbus Function Code 03 (read multiple holding registers) is used:
+
 Request: `01 03 00 30 00 05 85 c6` (Address 01, Function Code 03, start at address 0x0030, read 0x0005 registers, checksum)
+
 Response: `01 03 00 30 0a 00 00 00 30 00 00 00 00 00 00 d3 27` (Address 01 responding to Function Code 03, starting at address 0x0030, 0x0a databytes will follow, [data], checksum)
 
 Writing registers is likely achieved with Function Code 06 (write single holding register). I haven't dared to touch this yet, I still need this scooter for driving to work :)
 
 # Display hardware
-The scooter's display, marked HW6173_LCD1_V1.4 has an on-board BLE module (chip label not readable), supported by a 8051 based "CMS8S5880" microcotroller. I haven't bothered yet to reverse engineer the entire pcb as it isn't needed for my purpose.
+The scooter's display, marked HW6173_LCD1_V1.4 has an on-board BLE module (chip label unfortunately not readable), supported by an 8051 based "CMS8S5880" microcotroller. I haven't bothered yet to reverse engineer the entire pcb as it isn't needed for my purpose.
+
 The pinout of it's 4-pin connector to the motor driver is as follows:
-Pin | 1 | 2 | 3 | 4
---- | --- | --- | --- | ---
-Label | TX | - | + | KEY
-Function | Combined RX/TX | GND | switched positive Power Supply | Button (short to - or +)
+Pin | Label | Function
+--- | --- | ---
+1 | TX | Combined RX/TX
+2 | - | GND, likely switched
+3 | + | VCC (roughly 12 V when ON)
+4 | Key | Shorted to + when button is pressed
 
 The "TX" pin is interesting as it is used for seemingly bidirectional communication, continuing the MODBUS approach. It is using 3.3 V logic levels. The display is powered by roughly 12 V supplied by the motor controller, whenever the "Key" signal is activated or when the display keeps on actively communicating. This needs further research down the line and I expect the same kind of protocols used as in the BLE telemetry (only other more low-level stuff like accelerator position and light outputs on/off).
 Inactive high, some form of serial protocol, symbol rate 17,7 µs, near to 57600 Baud. To Do.
