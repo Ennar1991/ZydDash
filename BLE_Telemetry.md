@@ -43,10 +43,7 @@ The app sends configuration/control requests in the following form:
 `af 00 0a 82 03 05 0f 14 67 3d` looking somewhat like MODBUS, but not quite. The Checksum is indeed the Big-endian MODBUS-CRC.
 
 Byte | Value | Explanation, function
-<<<<<<< HEAD
 --- | --- | ---
-=======
->>>>>>> 871493005cfe194f7c6ee37d869fd91e259e2e26
 00 | 0xAF | Address, always 0xAF for an ePowerFun scooter (0xAB for other vendors)
 01 | 0x00 | Sub-address, always 0x00
 02 | 0x0A | Total number of bytes contained in this message (including head and checksum)
@@ -79,10 +76,7 @@ The response will be divided into two distinct types of packages, although longe
 `AF 00 19 01 02 30 00 00 00 00 01 70 00 00 18 00 01 10 00 01 10 0C 02 06 0C`
 
 Byte | Value | Explanation, function
-<<<<<<< HEAD
 --- | --- | ---
-=======
->>>>>>> 871493005cfe194f7c6ee37d869fd91e259e2e26
 00 | 0xAF | Address, always 0xAF for an ePowerFun scooter (0xAB for other vendors)
 01 | 0x00 | Sub-address, 0x00 for packet 1
 02 | 0x19 | Total number of bytes contained in this message (including head and checksum)
@@ -110,11 +104,8 @@ Byte | Value | Explanation, function
 24 | 0x0C | Checksum Low Byte
 
 ##### Packet type 2:
-<<<<<<< HEAD
 Byte | Value | Explanation, function
 --- | --- | ---
-=======
->>>>>>> 871493005cfe194f7c6ee37d869fd91e259e2e26
 00 | 0xAF | Address, always 0xAF for an ePowerFun scooter (0xAB for other vendors)
 01 | 0x01 | Sub-address, 0x01 for packet 2
 02 | 0x19 | Total number of bytes contained in this message (including head and checksum)
@@ -148,10 +139,7 @@ Writing registers is likely achieved with Function Code 06 (write single holding
 The scooter's display, marked HW6173_LCD1_V1.4 has an on-board BLE module (chip label not readable), supported by a 8051 based "CMS8S5880" microcotroller. I haven't bothered yet to reverse engineer the entire pcb as it isn't needed for my purpose.
 The pinout of it's 4-pin connector to the motor driver is as follows:
 Pin | 1 | 2 | 3 | 4
-<<<<<<< HEAD
 --- | --- | --- | ---
-=======
->>>>>>> 871493005cfe194f7c6ee37d869fd91e259e2e26
 Label | TX | - | + | KEY
 Function | Combined RX/TX | GND | switched positive Power Supply | Button (short to - or +)
 
