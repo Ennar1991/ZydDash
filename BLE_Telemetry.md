@@ -67,14 +67,17 @@ Byte | Value | Explanation, function
 The app will sometimes send other kinds of requests that I haven't fully understood yet.
 
 ##### Configuration/control bits (Byte 3):
-7. 0=Scooter locked, 1=Scooter unlocked
-6. ?
-5. ?
-4. ?
-3. 1=Reset trip distance
-2. 0=Lights off, 1=Lights on
-1. Gear select, combine with bit 0
-0. Gear select, 0=1st gead, 1=2nd gear, 2=3rd gear
+
+Bit |  Explanation, function
+--- | ---
+7 | 0=Scooter locked, 1=Scooter unlocked
+6 | ?
+5 | ?
+4 | ?
+3 | 1=Reset trip distance
+2 | 0=Lights off, 1=Lights on
+1 | Gear select, combine with bit 0
+0 | Gear select, 0=1st gear, 1=2nd gear, 2=3rd gear
 
 #### Scooter response to control/telemetry request
 
