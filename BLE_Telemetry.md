@@ -89,7 +89,7 @@ The response will be divided into two distinct types of packages, although longe
 
 Byte | Value | Explanation, function
 --- | --- | ---
-00 | 0xAF | Address, always 0xAF for an ePowerFun scooter (0xAB for other vendors)
+00 | 0xAF | Address, always 0xAF for an ePowerFun scooter (0xAB or 0xA5 for other vendors)
 01 | 0x00 | Sub-address, 0x00 for packet 1
 02 | 0x19 | Total number of bytes contained in this message (including head and checksum)
 03 | 0x01 | Unknown, always 0x01
@@ -133,7 +133,7 @@ Byte | Value | Explanation, function
 
 #### Special commands/Upgrade mode
 
-Sending a special control request configures the display into "UF" mode, usually only seen when updating the firmware. This also happens with the Uniscooter app when changing the parameters for acceleration and brake response:
+Sending a magic control request configures the display into "UF" mode, usually only seen when updating the firmware. This also happens with the Uniscooter app when changing the parameters for acceleration and brake response:
 
 `a5 00 ff 00 00 00 00 5a`
 
@@ -141,7 +141,7 @@ To get out of "UF" mode, send:
 
 `a5 ff 00 00 00 00 00 5a`
 
-while in "UF" mode, the app seems to be directly communicating with the motor driver. This is indicated by the address changing and the protocol resembling 16-bit MODBUS even more:
+while in "UF" mode, the app seems to be directly communicating with the motor driver instead of the display. This is indicated by the address changing and the protocol resembling 16-bit MODBUS even more:
 
 Modbus Function Code 03 (read multiple holding registers) is used:
 
