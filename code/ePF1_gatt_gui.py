@@ -1,6 +1,7 @@
 import asyncio
 import time
 from bleak import BleakClient
+import PySimpleGUI as sg
 
 address = "c7:36:39:34:66:19"
 READ_UUID = "0000f1f2-0000-1000-8000-00805f9b34fb"
@@ -21,7 +22,7 @@ status={"gear":0,
         "timestamp":0,
         "energy":0}
 
-maxWatts=20
+maxWatts=500
 barSize=20
 
 #Notify Callback
@@ -80,6 +81,20 @@ def bar(inData,maxData,barlength):
     mystring=mystring+']'
     return mystring
 
+def make_window(theme=None):
+    labelXsize=11
+    barXsize=20
+    textXsize=10
+    layout=[[sg.Text('Speed',s=(labelXsize,1)), sg.ProgressBar(22, orientation='h', s=(barXsize,20), k='-SPEEDBAR-'),sg.Text(k='-SPEEDTEXT-', s=(textXsize,1))],
+            [sg.Text('Input Power',s=(labelXsize,1)), sg.ProgressBar(maxWatts, orientation='h', s=(barXsize,20), k='-POWERBAR-'),sg.Text(k='-POWERTEXT-', s=(textXsize,1))],
+            [sg.Text('Battery SOC',s=(labelXsize,1)), sg.ProgressBar(100, orientation='h', s=(barXsize,20), k='-BATBAR-'),sg.Text(k='-BATTEXT-', s=(textXsize,1))],
+            [sg.Text('Selected Gear',s=(labelXsize,1)),sg.Text(k='-GEARTEXT-', s=(textXsize,1))],
+            [sg.Text('Trip distance',s=(labelXsize,1)), sg.Text(k='-TRIPTEXT-', s=(textXsize,1))],
+            [sg.Text('Total distance',s=(labelXsize,1)), sg.Text(k='-TOTALTEXT-', s=(textXsize,1))]
+             ]
+    window = sg.Window('ePF-1 GUI', layout, finalize=True, keep_on_top=True)
+    return window
+
 #main loop, must be created as asyncio thread
 async def main(address):
     client = BleakClient(address)
@@ -91,6 +106,27 @@ async def main(address):
         maxspeed=22
 
         while True:
+            event, values = window.read(timeout=100)
+            #time.sleep(0.1)
+            if event == sg.WIN_CLOSED or event == 'Exit':
+                break
+            
+            
+            window['-SPEEDBAR-'].update(status['speed'])
+            window['-SPEEDTEXT-'].update('{:0.3f} km/h'.format(status['speed']))
+            
+            window['-POWERBAR-'].update(status['voltage']*status['amps'])
+            window['-POWERTEXT-'].update('{:0.2f} W'.format(status['voltage']*status['amps']))
+            
+            window['-BATBAR-'].update(status['soc'])
+            window['-BATTEXT-'].update('{} %'.format(status['soc']))
+            
+            window['-GEARTEXT-'].update('{}'.format(status['gear']))
+            window['-TRIPTEXT-'].update('{:0.1f} km'.format(status['tripkm']))
+            window['-TOTALTEXT-'].update('{:0.1f} km'.format(status['totalkm']))
+            
+            
+            
             if(time.time()-status['timestamp'])>0.2:
                 send_data = await client.write_gatt_char(SEND_UUID, b'\xaa')
                 
@@ -104,11 +140,14 @@ async def main(address):
             
             #print dashboard-like information
             print("Speed: {:0.3f} km/h {}, Odo: {:0.1f} km, Power: {:0.2f} W {}, Energy: {:0.3f} Wh, Bat: {} % ".format(status['speed'], bar(status['speed'],maxspeed,barSize),status['totalkm'], status['voltage']*status['amps'], bar(status['voltage']*status['amps'],maxWatts,barSize), status['energy']/3600, status['soc']), end='\r')
-            time.sleep(0.1)
+            
+            
     except Exception as e:
         print(e)
     finally:
-        print()
+        print("Exiting")
         await client.disconnect()
+        window.close()
 
+window = make_window()
 asyncio.run(main(address))
