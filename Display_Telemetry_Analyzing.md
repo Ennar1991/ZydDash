@@ -112,11 +112,74 @@ so far the only fields changing are databyte 4, likely represending a control bi
 
 Databyte 4 does not correspond to simple button presses.
 
+### Playing around with live view
 
+Using the trigger function of the Saleae Logic software, i fiddled around with the scooter's controls until finding out which databytes are responsible for each function:
 
+#### Request 
 
+`01 17 00 26 00 0c 00 2b 00 01 02 00 00 72 59`
 
+Byte | Databyte | Value | Confirmed Function
+--- | --- | --- | ---
+00 |    | 01 | Address
+01 |    | 17 | Function Code (No MODBUS, maybe "store in register"?)
+02 |    | 00 | starting register high-byte
+03 |    | 26 | starting register low-byte
+04 |    | 00 | number of 16-bit values High-Byte
+05 |    | 0c | number of 16-bit values (1/2 number of databytes) Low-Byte
+06 | 00 | 00 | 
+07 | 01 | 2b |
+08 | 02 | 00 |
+09 | 03 | 01 |
+10 | 04 | 02 |
+11 | 05 | 00 | Throttle/Brake position High-Byte
+12 | 06 | 00 | Throttle/Brake position Low-Byte (See below)
+13 |    | 72 | Checksum High-byte
+14 |    | 59 | Checksum Low-byte
 
+The throttle/brake position logic seems to be directly lifted from Hobbywing's RC controllers.
+The positions of both the throttle and brake, and also the hand brake switch, are linked together in one single signed 16-bit field. 
+There is no extra bit for the hand brake switch. 
 
+Combined, this field clearly represents the center position of an RC control stick usually used for both throttle and acceleration.
 
+Connecting bluetooth doesn't change the reqgular request data, but introduces the tiniest bit of jitter into the stream.
 
+#### Response
+
+`01 17 00 26 18 01 a0 00 00 18 00 0c 01 00 00 00 00 00 00 13 eb 11 e8 6b c0 00 01 00 64 6f 2d`
+
+Byte | Databyte | Value | Confirmed Function
+--- | --- | --- | ---
+00 |    | 01 | Address
+01 |    | 17 | Reply to Function Code
+02 |    | 00 | starting register high-byte
+03 |    | 26 | starting register low-byte
+04 |    | 18 | number of databytes
+05 | 00 | 01 | Battery Voltage High-Byte
+06 | 01 | a0 | Battery Voltage Low-Byte  V*0.1 (Example: 0x01a0=416=41.6 V)
+07 | 02 | 00 | Amperage High-Byte
+08 | 03 | 00 | Amperage Low-Byte A*0.01 (Example: 0x001F=31=0.31 A)
+09 | 04 | 18 | Controller temperature
+10 | 05 | 00 | 
+11 | 06 | 0c | Corresponds with lock/unlock
+12 | 07 | 01 | Control bits (Bit 4 on when beeper is active, Bit 3= Light on/off, Bits 0..1: Gear select)
+13 | 08 | 00 | 
+14 | 09 | 00 | 
+15 | 10 | 00 | Copy of Request Throttle value High-Byte
+16 | 11 | 00 | Copy of Request Throttle value Low-Byte
+17 | 12 | 00 | Actual Speed High-Byte 
+18 | 13 | 00 | Actual Speed Low-Byte, km/h*0.001 (e.g. 0x55F0=22000=22.000 km/h)
+19 | 14 | 13 | Settling value High-Byte
+20 | 15 | eb | Settling value Low-Byte, increases with wheel motion, decreases when wheel is stopped. Not related to power-off time-out.
+21 | 16 | 11 | Trip Distance Mid-Byte
+22 | 17 | e8 | Trip Distance Low-Byte
+23 | 18 | 6b | Total Distance Mid-Byte
+24 | 19 | c0 | Total Distance Low-byte 
+25 | 20 | 00 | Trip Distance High-Byte, km*0.01 (e.g. 0x0011e8=4584=45.84 km; 0x001238=4664=46.64km)
+26 | 21 | 01 | Total Distance Mid2 Byte 
+27 | 22 | 00 | Total Distance High Byte km*0.001 (e.g. 0x00016ee0=93920=93.920 km). Always counts up regardless of wheel direction
+28 | 23 | 64 | 
+29 |    | 6f | Checksum High-byte
+30 |    | 2d | Checksum Low-Byte

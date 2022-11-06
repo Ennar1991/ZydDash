@@ -91,7 +91,9 @@ def make_window(theme=None):
             [sg.Text('Selected Gear',s=(labelXsize,1)),sg.Text(k='-GEARTEXT-', s=(textXsize,1))],
             [sg.Text('Trip distance',s=(labelXsize,1)), sg.Text(k='-TRIPTEXT-', s=(textXsize,1))],
             [sg.Text('Total distance',s=(labelXsize,1)), sg.Text(k='-TOTALTEXT-', s=(textXsize,1))],
-            [sg.Text('Energy',s=(labelXsize,1)), sg.Text(k='-WATTHOURSTEXT-', s=(textXsize,1))]
+            [sg.Text('Energy',s=(labelXsize,1)), sg.Text(k='-WATTHOURSTEXT-', s=(textXsize,1))],
+            [sg.Text('Temperature',s=(labelXsize,1)), sg.Text(k='-TEMPTEXT-', s=(textXsize,1))]
+            
             
              ]
     window = sg.Window('ePF-1 GUI', layout, finalize=True, keep_on_top=True)
@@ -127,7 +129,7 @@ async def main(address):
             window['-TRIPTEXT-'].update('{:0.1f} km'.format(status['tripkm']))
             window['-TOTALTEXT-'].update('{:0.1f} km'.format(status['totalkm']))
             window['-WATTHOURSTEXT-'].update('{:0.3f} Wh'.format(status['energy']/3600))
-            
+            window['-TEMPTEXT-'].update('{:} °C'.format(status['temperature']))
             
             
             
