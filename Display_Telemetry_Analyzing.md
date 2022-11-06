@@ -52,7 +52,7 @@ ca 9f | checksum, MODBUS-CRC16 Big Endian
 Request `01 17 00 26 00 0c 00 2b 00 01 02 00 00 72 59` is sent and repeated 65 times over ~1.5 seconds until the controller turns on
 
 Magic `30 32 30 32 31 38 30 32` this magic sequence is sent EXACTLY ONCE (origin yet unknown), after which the controller and display actively communicate
-It corrensponds to "02021802" in ASCII, the meaning of which is still unclear
+It corresponds to "02021802" in ASCII, the meaning of which is the "Controller Code" displayed in the app's firmware upgrade menu.
 
 ### Powered up state, resting
 

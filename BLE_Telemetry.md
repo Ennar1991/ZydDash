@@ -149,4 +149,4 @@ Request: `01 03 00 30 00 05 85 c6` (Address 01, Function Code 03, start at addre
 
 Response: `01 03 00 30 0a 00 00 00 30 00 00 00 00 00 00 d3 27` (Address 01 responding to Function Code 03, starting at address 0x0030, 0x0a databytes will follow, [data], checksum)
 
-Writing registers is likely achieved with Function Code 06 (write single holding register). I haven't dared to touch this yet, I still need this scooter for driving to work :)
+Writing registers is achieved with Function Code 17, but with its own quirks. See the display telemetry document for more details.

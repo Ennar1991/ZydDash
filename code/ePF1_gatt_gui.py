@@ -2,6 +2,7 @@ import asyncio
 import time
 from bleak import BleakClient
 import PySimpleGUI as sg
+import libscrc
 
 address = "c7:36:39:34:66:19"
 READ_UUID = "0000f1f2-0000-1000-8000-00805f9b34fb"
@@ -22,15 +23,21 @@ status={"gear":0,
         "timestamp":0,
         "energy":0}
 
+memorymap=[0]*160 #160 16-bit registers
+
 maxWatts=500
 barSize=20
+
 
 #Notify Callback
 def callback(sender: int, data: bytearray):
     global status
-    status['packet']+=1
+    global memorymap
+    global updateMap
 
-    if (len(data)==25 and data[0]==175): #telemetry
+
+    if (len(data)==25 and data[0]==175): #BLE telemetry
+        status['packet']+=1
         if(data[1]==0):
             status['gear']=data[4]+1
             status['soc']=data[5]
@@ -54,8 +61,19 @@ def callback(sender: int, data: bytearray):
             status['speed3']=data[6]
             
     else:
+        #print("UF ", end='') 
+        #print(data)
         if(data[0]==1): #controller "UF" packet
-            pass    #nothing implemented yet
+            if(data[1]==3): # Read address function code
+                #print("FC03 (read)")
+                startAddress=(data[2]*256)+data[3]
+                dataLength=int(data[4]/2)
+                #print('startAddress: {}, dataLength: {}'.format(startAddress,dataLength))
+                for i in range(0,dataLength):
+                    #print("{:04x}: {:02x}{:02x}".format(startAddress+i,data[5+(2*i)],data[6+(2*i)]))
+                    memorymap[startAddress+i]=data[5+(2*i)]*256+data[6+(2*i)]
+                
+            
 
 #Helper function to create a simple bargraph
 def bar(inData,maxData,barlength):
@@ -92,12 +110,21 @@ def make_window(theme=None):
             [sg.Text('Trip distance',s=(labelXsize,1)), sg.Text(k='-TRIPTEXT-', s=(textXsize,1))],
             [sg.Text('Total distance',s=(labelXsize,1)), sg.Text(k='-TOTALTEXT-', s=(textXsize,1))],
             [sg.Text('Energy',s=(labelXsize,1)), sg.Text(k='-WATTHOURSTEXT-', s=(textXsize,1))],
-            [sg.Text('Temperature',s=(labelXsize,1)), sg.Text(k='-TEMPTEXT-', s=(textXsize,1))]
-            
-            
-             ]
+            [sg.Text('Temperature',s=(labelXsize,1)), sg.Text(k='-TEMPTEXT-', s=(textXsize,1))],
+            [sg.Button('Reset Trip', k='-RESETTRIP-'), sg.Button('UF mode ON', k='-UFON-'), sg.Button('UF mode OFF', k='-UFOFF-'), sg.Button('Read memory 0x20', k='-READMEMORY-'),sg.Button('Read memory 0x00-0x9f', k='-READMEMORY2-')],
+            [sg.Table([[0],[10],[20],[30],[40],[50],[60],[70],[80],[90]], ['Addr','0000','0001','0002','0003','0004','0005','0006','0007','0008','0009','000a','000b','000c','000d','000e','000f'], num_rows=10, k='-MEMORYMAP-')]
+            ]
     window = sg.Window('ePF-1 GUI', layout, finalize=True, keep_on_top=True)
     return window
+
+def tableMap(datatable):
+    memMap= [ [0]*17 for i in range(10)]
+    for row in range(0,10):
+        memMap[row][0]=row*10
+        for col in range(0,16):
+            memMap[row][1+col]='{:04x}'.format(datatable[(row*16)+col])
+
+    return memMap            
 
 #main loop, must be created as asyncio thread
 async def main(address):
@@ -108,13 +135,48 @@ async def main(address):
         await client.start_notify(READ_UUID, callback)
         print("Connected.")
         maxspeed=22
-
+        telemetryOn=True
+        updateMap=True
         while True:
             event, values = window.read(timeout=100)
             #time.sleep(0.1)
+            
+            if event == '-RESETTRIP-':
+                #send_data = await client.write_gatt_char(SEND_UUID, b'\xaf\x00\x0a\x')
+                pass
+                
+            if event == '-UFON-':
+                send_data = await client.write_gatt_char(SEND_UUID, b'\xa5\x00\xff\x00\x00\x00\x00\x5a')
+                telemetryOn=False
+            
+            if event == '-UFOFF-':
+                send_data = await client.write_gatt_char(SEND_UUID, b'\xa5\xff\x00\x00\x00\x00\x00\x5a')
+                telemetryOn=True
+            
+            if event == '-READMEMORY-':
+                mydata=b'\x01\x03\x00\x20\x00\x01'
+                mycrc=libscrc.modbus(mydata).to_bytes(2, byteorder='little')
+                send_data = await client.write_gatt_char(SEND_UUID, mydata+mycrc)
+                #read_data= await client.read_gatt_char(READ_UUID)
+                window['-MEMORYMAP-'].update(tableMap(memorymap))
+            
+            if event == '-READMEMORY2-':
+                for i in range (0,10):
+                    mydata=b'\x01\x03\x00'+(i*16).to_bytes(1, byteorder='big')+b'\x00\x0f'
+                    
+                    mycrc=libscrc.modbus(mydata).to_bytes(2, byteorder='little')
+                    #print(mydata+mycrc)
+                    send_data = await client.write_gatt_char(SEND_UUID, mydata+mycrc)
+                    time.sleep(0.1)
+                    window['-MEMORYMAP-'].update(tableMap(memorymap))
+                
+                #read_data= await client.read_gatt_char(READ_UUID)
+                #
+
             if event == sg.WIN_CLOSED or event == 'Exit':
                 break
             
+            #window['-MEMORYMAP-'].update(tableMap(memorymap))
             
             window['-SPEEDBAR-'].update(status['speed'])
             window['-SPEEDTEXT-'].update('{:0.3f} km/h'.format(status['speed']))
@@ -131,9 +193,7 @@ async def main(address):
             window['-WATTHOURSTEXT-'].update('{:0.3f} Wh'.format(status['energy']/3600))
             window['-TEMPTEXT-'].update('{:} °C'.format(status['temperature']))
             
-            
-            
-            if(time.time()-status['timestamp'])>0.2:
+            if telemetryOn==True and (time.time()-status['timestamp'])>0.2:
                 send_data = await client.write_gatt_char(SEND_UUID, b'\xaa')
                 
             #scale bargraph based on selected gear
@@ -145,7 +205,8 @@ async def main(address):
                 maxspeed=status['speed3']
             
             #print dashboard-like information
-            print("Speed: {:0.3f} km/h {}, Odo: {:0.1f} km, Power: {:0.2f} W {}, Energy: {:0.3f} Wh, Bat: {} % ".format(status['speed'], bar(status['speed'],maxspeed,barSize),status['totalkm'], status['voltage']*status['amps'], bar(status['voltage']*status['amps'],maxWatts,barSize), status['energy']/3600, status['soc']), end='\r')
+            if telemetryOn==True:
+                print("Speed: {:0.3f} km/h {}, Odo: {:0.1f} km, Power: {:0.2f} W {}, Energy: {:0.3f} Wh, Bat: {} % ".format(status['speed'], bar(status['speed'],maxspeed,barSize),status['totalkm'], status['voltage']*status['amps'], bar(status['voltage']*status['amps'],maxWatts,barSize), status['energy']/3600, status['soc']))
             
             
     except Exception as e:
