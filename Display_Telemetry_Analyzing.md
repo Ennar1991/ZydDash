@@ -116,7 +116,7 @@ Databyte 4 does not correspond to simple button presses.
 
 Using the trigger function of the Saleae Logic software, i fiddled around with the scooter's controls until finding out which databytes are responsible for each function:
 
-#### Request 
+#### Regular Request (RQ1)
 
 `01 17 00 26 00 0c 00 2b 00 01 02 00 00 72 59`
 
@@ -126,8 +126,8 @@ Byte | Databyte | Value | Confirmed Function
 01 |    | 17 | Function Code (No MODBUS, maybe "store in register"?)
 02 |    | 00 | starting register high-byte
 03 |    | 26 | starting register low-byte
-04 |    | 00 | number of 16-bit values High-Byte
-05 |    | 0c | number of 16-bit values (1/2 number of databytes) Low-Byte
+04 |    | 00 | 
+05 |    | 0c | 
 06 | 00 | 00 | 
 07 | 01 | 2b |
 08 | 02 | 00 |
@@ -146,7 +146,7 @@ Combined, this field clearly represents the center position of an RC control sti
 
 Connecting bluetooth doesn't change the reqgular request data, but introduces the tiniest bit of jitter into the stream.
 
-#### Response
+#### Regular Response
 
 `01 17 00 26 18 01 a0 00 00 18 00 0c 01 00 00 00 00 00 00 13 eb 11 e8 6b c0 00 01 00 64 6f 2d`
 
@@ -180,6 +180,67 @@ Byte | Databyte | Value | Confirmed Function
 25 | 20 | 00 | Trip Distance High-Byte, km*0.01 (e.g. 0x0011e8=4584=45.84 km; 0x001238=4664=46.64km)
 26 | 21 | 01 | Total Distance Mid2 Byte 
 27 | 22 | 00 | Total Distance High Byte km*0.001 (e.g. 0x00016ee0=93920=93.920 km). Always counts up regardless of wheel direction
-28 | 23 | 64 | 
+28 | 23 | 64 | Battery SOC in % (0x64=100 %)
 29 |    | 6f | Checksum High-byte
 30 |    | 2d | Checksum Low-Byte
+
+#### Special requests with App
+
+##### Lock
+While having the app connected, setting the scooter to "locked" resulted in the following command injected into the regular datastream:
+
+`01 10 00 00 00 01 02 00 02 27 91`
+
+...resulting in the following response and the scooter locking up the front wheel drive:
+`01 10 00 00 00 01 01 c9`
+
+among other request/response pairs (not captured/analyzed)
+
+##### Start mode (Kick/Zero)
+
+Setting the scooter from "Kickstart" to "Zero Start" resulted in the following command injected into the regular datastream:
+
+`01 10 00 00 00 01 02 08 22 21 89`
+
+...resulting in the following responses and one single beep from the display:
+`01 10 00 00 00 01 01 c9`
+
+Another subsequent request made by the display:
+`01 17 00 22 00 02 00 22 00 02 04 03 05 0f 16 a8 82`
+
+which contains the now familiar sequence of `05 0f 16` corresponding to the three default gear speeds of 5, 15 and 22 km/h.
+
+The controller responds with: `01 17 00 22 04 03 05 0f 16 24 b3` 
+
+This didnt have any real consequences, since Kickstart is the default and only allowed mode.
+
+After that, the usual RQ1/Response interrogation resumes.
+
+##### Changing Gear 3 speed
+Gear 3 is the usually selected gear when driving at maximum speed. You can choose a speed between 6 and 20 (22) km/h in the app.
+
+Setting the scooter's maxximum speed from 22 to 6 km/h in gear 3 (light off, unlocked, kickstart, km/h display) results in the following command injected into the regular datastream:
+
+Request: `01 10 00 00 00 01 02 08 02 20 51`  (very likely control bits orr a magic sequence for allowing a change in value)
+
+Response: `01 10 00 00 00 01 01 c9`
+
+Request:  `01 17 00 22 00 02 00 22 00 02 04 03 05 0f 06 a9 4e` contains the now changed sequence `05 0f 06`
+
+Response: `01 17 00 22 04 03 05 0f 06 25 7f` The controller repeats what it got
+
+After that, the usual RQ1/Response interrogation resumes.
+
+##### Changing into UF mode with Uniscooter App
+
+Changing into UF mode using Uniscooter's extended settings not available in the ePowerFun app changes the interrogation scheme quite a bit. The interrogation frame interval is increased to 250 ms.
+
+Requests in the following form are made:
+
+`01 03 00 XX 00 YY CS CS`
+
+where XX is a constantly increasing number (from 0x00 to 0x90 in 0x10 size steps). YY is 0x10 for most of the requests, only for XX=0x40 it is 0x0F.
+
+
+
+
