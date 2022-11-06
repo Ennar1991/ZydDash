@@ -346,5 +346,8 @@ Request: `01 17 00 20 00 01 00 20 00 01 02 00 64 53 4f`
 
 Response `01 17 00 20 02 00 64 a3 0c`
 
-It looks like the speed limiter is set in 16-bit values as well. The scaling is km/h*0.1, with the values lining up neatly: 0xc8=200=20.0 km/h, 0xbe=190=19.0 km/h, 0x64=100=10.0 km/h.
+It looks like the speed limiter is set in 16-bit values as well. The scaling is km/h*0.1, with the values lining up neatly: 
 
+0xc8=200=20.0 km/h, 0xbe=190=19.0 km/h, 0x64=100=10.0 km/h.
+
+In theory, Request `01 17 00 20 00 01 00 20 00 01 02 00 ff 12 e4` sets the scooter to 25.5 km/h. The firmware limits it to 22.0 km/h, keeping it within legal bounds. This corresponds with the value in Uniscooter jumping back to 22 km/h if you set it higher than 22.
