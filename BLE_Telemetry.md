@@ -150,17 +150,3 @@ Request: `01 03 00 30 00 05 85 c6` (Address 01, Function Code 03, start at addre
 Response: `01 03 00 30 0a 00 00 00 30 00 00 00 00 00 00 d3 27` (Address 01 responding to Function Code 03, starting at address 0x0030, 0x0a databytes will follow, [data], checksum)
 
 Writing registers is likely achieved with Function Code 06 (write single holding register). I haven't dared to touch this yet, I still need this scooter for driving to work :)
-
-# Display hardware
-The scooter's display, marked HW6173_LCD1_V1.4 has an on-board BLE module (chip label unfortunately not readable), supported by an 8051 based "CMS8S5880" microcotroller. I haven't bothered yet to reverse engineer the entire pcb as it isn't needed for my purpose.
-
-The pinout of it's 4-pin connector to the motor driver is as follows:
-Pin | Label | Function
---- | --- | ---
-1 | TX | Combined RX/TX
-2 | - | GND, likely switched
-3 | + | VCC (roughly 12 V when ON)
-4 | Key | Shorted to + when button is pressed
-
-The "TX" pin is interesting as it is used for seemingly bidirectional communication, continuing the MODBUS approach. It is using 3.3 V logic levels. The display is powered by roughly 12 V supplied by the motor controller, whenever the "Key" signal is activated or when the display keeps on actively communicating. This needs further research down the line and I expect the same kind of protocols used as in the BLE telemetry (only other more low-level stuff like accelerator position and light outputs on/off).
-Inactive high, some form of serial protocol, symbol rate 17,7 µs, near to 57600 Baud. To Do.
