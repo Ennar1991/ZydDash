@@ -249,7 +249,7 @@ Since this reads an entire memory map, I will list it here as a table without th
 
 XX | Data
 --- | ---
-Reg | ` 0000  0001  0002  0003  0004  0005  0006  0007  0008  0009  000a  000b  000c  000d  000e  000f` 
+   | `+0000 +0001 +0002 +0003 +0004 +0005 +0006 +0007 +0008 +0009 +000a +000b +000c +000d +000e +000f` 
 00 | `08 03 00 00 55 55 00 00 00 0f 0e d8 09 99 0a 66 13 88 75 30 52 08 04 e0 04 00 1f 40 02 58 03 20`
 10 | `3e 80 03 20 3e 80 01 36 01 d1 00 01 6a aa 00 f1 c0 3d 00 27 63 35 00 06 03 fd 00 00 00 00 00 00`
 20 | `00 3c 00 01 03 05 0f 16 00 00 00 00 01 9d 00 00 19 00 0c 00 00 00 2c 12 00 00 10 e5 12 bb 73 fe`
@@ -261,9 +261,90 @@ Reg | ` 0000  0001  0002  0003  0004  0005  0006  0007  0008  0009  000a  000b  
 80 | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00`
 90 | `00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00`
 
+##### changing extended settings in UF mode (bridge mode, direct interfacing to controller through bluetooth)
 
+Changing a setting in the app while in "UF" mode, a bit of lag is introduced into the communication followed by a request of the following form:
 
+`01 17 00 09 00 01 00 09 00 01 02 3a 98 97 12` 
 
+with the controller responding with: `01 17 00 09 02 3a 98 b9 b1` 
 
+I need to collect a few examples to be sure what does what.
 
+Starting with settings "Acceleration response=10", "Brake response=10", "Max. speed=22 km/h"
+
+###### changing acceleration response
+
+changing acceleration response from 10 to 9
+
+Request: `01 17 00 09 00 01 00 09 00 01 02 69 78 aa 6a`
+
+Response: `01 17 00 09 02 69 78 84 c9`
+
+changing acceleration response from 9 to 8
+
+Request: `01 17 00 09 00 01 00 09 00 01 02 5d c0 bc d8`
+
+Response: `01 17 00 09 02 5d c0 92 7b`
+
+changing acceleration response from 8 to 7
+
+Request: `01 17 00 09 00 01 00 09 00 01 02 52 08 b8 be`
+
+Response: `01 17 00 09 02 52 08 96 1d`
+
+changing acceleration response from 7 to 10
+
+Request: `01 17 00 09 00 01 00 09 00 01 02 75 30 a2 9c`
+
+Response: `01 17 00 09 02 75 30 8c 3f`
+
+It seems like the different acceleration response settings are actually 16-bit preset values.
+
+###### changing brake response
+
+changing brake response from 10 to 9
+
+Request: `01 17 00 0a 00 01 00 0a 00 01 02 69 78 5a 56`
+
+Response: `01 17 00 0a 02 69 78 84 8d`
+
+changing brake response from 9 to 1
+
+Request: `01 17 00 0a 00 01 00 0a 00 01 02 0b b8 73 66`
+
+Response: `01 17 00 0a 02 0b b8 ad bd`
+
+changing brake response from 1 to 10
+
+Request: `01 17 00 0a 00 01 00 0a 00 01 02 75 30 52 a0`
+
+Response: `01 17 00 0a 02 75 30 8c 7b`
+
+It seems like the different brake response settings are actually 16-bit preset values that are identical to the acceleration response values.
+They range between `0x0bb8` and `0x7530`, 3000 to 30000 in decimal.
+
+###### changing maximum speed limit
+
+This maximum speed limit parameter is a different parameter than the three individually settable gear speeds. If this parameter is set lower than for example gear 3's speed value, this parameter limits the top speed (even though gear 3 would technically allow a faster speed).
+
+changing maximum speed from 22 to 20 km/h
+
+Request: `01 17 00 20 00 01 00 20 00 01 02 00 c8 53 32`
+
+Response `01 17 00 20 02 00 c8 a3 71`
+
+changing maximum speed from 20 to 19 km/h
+
+Request: `01 17 00 20 00 01 00 20 00 01 02 00 be 53 32`
+
+Response `01 17 00 20 02 00 be a3 71`
+
+changing maximum speed from 19 to 10 km/h
+
+Request: `01 17 00 20 00 01 00 20 00 01 02 00 64 53 4f`
+
+Response `01 17 00 20 02 00 64 a3 0c`
+
+It looks like the speed limiter is set in 16-bit values as well. The scaling is km/h*0.1, with the values lining up neatly: 0xc8=200=20.0 km/h, 0xbe=190=19.0 km/h, 0x64=100=10.0 km/h.
 
