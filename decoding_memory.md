@@ -37,7 +37,7 @@ changing an interesting looking parameter at address 0x02
 
 ...also didn't work.
 
-##reading beyond 0x9f
+## reading beyond 0x9f
 
 It is indeed possible to read MUCH beyond 0x9f. I've upgraded the GUI tool to read quite far into the memory.
 
