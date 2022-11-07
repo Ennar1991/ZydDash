@@ -219,9 +219,9 @@ After that, the usual RQ1/Response interrogation resumes.
 ##### Changing Gear 3 speed
 Gear 3 is the usually selected gear when driving at maximum speed. You can choose a speed between 6 and 20 (22) km/h in the app.
 
-Setting the scooter's maxximum speed from 22 to 6 km/h in gear 3 (light off, unlocked, kickstart, km/h display) results in the following command injected into the regular datastream:
+Setting the scooter's maximum speed from 22 to 6 km/h in gear 3 (light off, unlocked, kickstart, km/h display) results in the following command injected into the regular datastream:
 
-Request: `01 10 00 00 00 01 02 08 02 20 51`  (very likely control bits orr a magic sequence for allowing a change in value)
+Request: `01 10 00 00 00 01 02 08 02 20 51`  (very likely control bits or a magic sequence for allowing a change in value)
 
 Response: `01 10 00 00 00 01 01 c9`
 

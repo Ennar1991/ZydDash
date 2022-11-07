@@ -17,7 +17,7 @@ Address | Confirmed function
 29 | various control bits, unknown except for gear select and lamp status
 2F..30 | total kilometers (read-only, km*0.001)
 
-## writing something to memory
+## Writing something to memory
 
 Recreating my old total kilometer record of approx. 1000 km before a firmware upgrade destroyed it, resetting it to zero:
 
@@ -37,7 +37,7 @@ changing an interesting looking parameter at address 0x02
 
 ...also didn't work.
 
-## reading beyond 0x9f
+## Reading beyond 0x9f
 
 It is indeed possible to read MUCH beyond 0x9f. I've upgraded the GUI tool to read quite far into the memory.
 
