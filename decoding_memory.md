@@ -10,6 +10,7 @@ Address | Confirmed function
 09 | Acceleration response (16-bit val)
 0a | Brake response (16-bit val)
 20 | maximum speed (km/h*0.1)
+25 | 
 26 | battery voltage (V*0.1)
 27 | battery amperage (A*0.01)
 28 | temperature (read only high-byte, °C)
@@ -28,3 +29,20 @@ writing location 0x0030=0x000f: `01 17 00 30 00 01 00 30 00 01 02 00 0f 11 a5`
 
 ...was unsuccessful. It looks like the memory for the total km's is write protected, which is good, but won't help me restore my original 1000 km record.
 
+changing an interesting looking parameter at address 0x02
+
+`01 17 00 02 00 01 00 02 00 01 02 55 55 0b e9` original 5555
+
+`01 17 00 02 00 01 00 02 00 01 02 22 22 6c 3f` test 2222
+
+...also didn't work.
+
+##reading beyond 0x9f
+
+It is indeed possible to read MUCH beyond 0x9f. I've upgraded the GUI tool to read quite far into the memory.
+
+Starting at 0x0116 are located the four text strings that appear in the firmware upgrade screen. They are stored in reverse byte order, with a length of 16 bytes (8 addresses) each. I found out because 0x20 corresponds to an ASCII space character, and there seemed to be quite a lot of them at once. They are indeed used as padding for the text strings.
+
+around the 0x01a0 mark there seems to be a repetitve data structure that repeats three times, suspiciously correlating to the three gears that can be selected. I haven't found any meaning in this data yet.
+
+Firmware seems to start around 0x04bf.

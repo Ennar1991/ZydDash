@@ -23,7 +23,7 @@ status={"gear":0,
         "timestamp":0,
         "energy":0}
 
-memorymap=[0]*160 #160 16-bit registers
+memorymap=[0]*4096 #16-bit registers
 
 maxWatts=500
 barSize=20
@@ -111,16 +111,16 @@ def make_window(theme=None):
             [sg.Text('Total distance',s=(labelXsize,1)), sg.Text(k='-TOTALTEXT-', s=(textXsize,1))],
             [sg.Text('Energy',s=(labelXsize,1)), sg.Text(k='-WATTHOURSTEXT-', s=(textXsize,1))],
             [sg.Text('Temperature',s=(labelXsize,1)), sg.Text(k='-TEMPTEXT-', s=(textXsize,1))],
-            [sg.Button('Reset Trip', k='-RESETTRIP-'), sg.Button('UF mode ON', k='-UFON-'), sg.Button('UF mode OFF', k='-UFOFF-'), sg.Button('Read memory 0x20', k='-READMEMORY-'),sg.Button('Read memory 0x00-0x9f', k='-READMEMORY2-')],
-            [sg.Table([[0],[10],[20],[30],[40],[50],[60],[70],[80],[90]], ['Addr','0000','0001','0002','0003','0004','0005','0006','0007','0008','0009','000a','000b','000c','000d','000e','000f'], num_rows=10, k='-MEMORYMAP-')]
+            [sg.Button('Reset Trip', k='-RESETTRIP-'), sg.Button('UF mode ON', k='-UFON-'), sg.Button('UF mode OFF', k='-UFOFF-'), sg.Button('Read memory 0x20', k='-READMEMORY-'),sg.Button('Dump memory', k='-READMEMORY2-')],
+            [sg.Table([[0],[10],[20],[30],[40],[50],[60],[70],[80],[90]], ['Addr','0000','0001','0002','0003','0004','0005','0006','0007','0008','0009','000a','000b','000c','000d','000e','000f'], num_rows=32, k='-MEMORYMAP-')]
             ]
     window = sg.Window('ePF-1 GUI', layout, finalize=True, keep_on_top=True)
     return window
 
 def tableMap(datatable):
-    memMap= [ [0]*17 for i in range(10)]
-    for row in range(0,10):
-        memMap[row][0]=row*10
+    memMap= [ [0]*17 for i in range(256)]
+    for row in range(0,256):
+        memMap[row][0]='{:02x}'.format(row*16)
         for col in range(0,16):
             memMap[row][1+col]='{:04x}'.format(datatable[(row*16)+col])
 
@@ -161,11 +161,11 @@ async def main(address):
                 window['-MEMORYMAP-'].update(tableMap(memorymap))
             
             if event == '-READMEMORY2-':
-                for i in range (0,10):
-                    mydata=b'\x01\x03\x00'+(i*16).to_bytes(1, byteorder='big')+b'\x00\x0f'
+                for i in range (0,256):
+                    mydata=b'\x01\x03'+(i*16).to_bytes(2, byteorder='big')+b'\x00\x10'
                     
                     mycrc=libscrc.modbus(mydata).to_bytes(2, byteorder='little')
-                    #print(mydata+mycrc)
+                    print(mydata+mycrc)
                     send_data = await client.write_gatt_char(SEND_UUID, mydata+mycrc)
                     time.sleep(0.1)
                     window['-MEMORYMAP-'].update(tableMap(memorymap))
