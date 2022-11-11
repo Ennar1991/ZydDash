@@ -6,7 +6,7 @@ The commands also contain start addresses and length information, and always end
 The responses repeat the target address and function code, just like MODBUS does.
 All commands are 16-bit oriented and use 16-bit addresses and values.
 
-## Combined read and write
+## 0x17 Combined read and write
 
 This is the most common command used. It requests a read operation after writing its own data. This is useful for reading back results after poking the controller with a write.
 
@@ -69,7 +69,7 @@ Byte(s) | Code | Function
 11-12 | 00 00 | data (throttle/brake position)
 13-14 | 72 59 | Checksum
 
-## Read registers
+## 0x03 Read registers
 
 Reads multiple registers from memory
 
@@ -107,7 +107,7 @@ N-1 | CSH | Checksum High-Byte
 N | CSL | Checksum Low-Byte
 
 
-## Set bit
+## 0x10 Set bit
 
 Sets bits at the requested address, not fully confirmed
 
