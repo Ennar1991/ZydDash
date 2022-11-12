@@ -8,4 +8,12 @@ So far, the interesting bits like current speed, voltage, total distance etc. ca
 
 To read up on my findings, go to `BLE_Telemetry.md`.
 
+The display data bus is discussed in-depth in `Display_Telemetry_Analyzing.md`
+
+More on the individual registers can be seen in `decoding_memory.md`
+
+The scooter's data protocols, which are primarily based on MODBUS, are explained in `commands.md` 
+
 An example app is provided with `ePF1_gatt.py`. Find out your scooter's BLE MAC and characteristic UUIDs and look for the first byte in the telemetry packets. It typically starts with `AF`, `AB` or `A5`. The app will connect to your scooter and try to read and interpret the data received on the bluetooth interface.
+
+All further development is continued in `ePF1_gatt_gui.py` which is an extended and GUIfied version of the core code. You will need to install pysimplegui and libscrc to run it.
