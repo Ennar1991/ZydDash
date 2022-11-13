@@ -15,10 +15,9 @@
 #include <Wire.h>
 #endif
 
-
 // The remote service we wish to connect to.
 static BLEAddress BLEAddress("c7:36:39:34:66:19");
-static String devicename = "HW_UG018376"; //for some reason the scooter does not transmit its MAC address without asking. Use name instead.
+static String devicename = "HW_UG018376";  // for some reason the scooter does not transmit its MAC address without asking. Use name instead.
 static BLEUUID serviceUUID("0000f1f0-0000-1000-8000-00805f9b34fb");
 // The characteristic of the remote service we are interested in.
 static BLEUUID sendUUID("0000f1f1-0000-1000-8000-00805f9b34fb");  // Transmit Channel  CLI--> SRV
@@ -49,10 +48,18 @@ struct {
   float energy = 0;
 } zydtechTelemetry;
 
-//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+enum displayModes {
+  DISPLAY_PAGE_SUMMARY,
+  DISPLAY_PAGE_TRIP,
+  DISPLAY_PAGE_BARS
+};
 
-void outputData() {
+displayModes displayMode = DISPLAY_PAGE_BARS;
+
+// U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
+
+void outputData(displayModes displayMode) {
   // Prints the telemetry data to the serial interface in a formatted way
   Serial.print("Speed: ");
   Serial.print(zydtechTelemetry.actualSpeed);
@@ -76,33 +83,61 @@ void outputData() {
   Serial.print(zydtechTelemetry.gear);
 
   Serial.print(" - Energy: ");
-  Serial.print(zydtechTelemetry.energy/3600);
+  Serial.print(zydtechTelemetry.energy / 3600);
 
   Serial.print(" Wh - SOC: ");
   Serial.print(zydtechTelemetry.soc);
 
   Serial.println("%");
 
-  char textbuffer[32]={};
-  u8g2.clearBuffer();					// clear the internal memory
-  u8g2.setFont(u8g2_font_busdisplay8x5_tr);	// choose a suitable font
-  
-  
-  sprintf(textbuffer, "Total:  %06.1f km", zydtechTelemetry.totalkm);
-  u8g2.drawStr(00,10,textbuffer);	// write something to the internal memory
-  sprintf(textbuffer, "Trip:   %04.1f km", zydtechTelemetry.tripkm);
-  u8g2.drawStr(00,20,textbuffer);	// write something to the internal memory
-  sprintf(textbuffer, "Speed:  %04.1f km/h", zydtechTelemetry.actualSpeed);
-  u8g2.drawStr(00,30,textbuffer);	// write something to the internal memory
-  sprintf(textbuffer, "Power:  %05.1f W  %04.1f A", zydtechTelemetry.voltage*zydtechTelemetry.current, zydtechTelemetry.current);
-  u8g2.drawStr(00,40,textbuffer);	// write something to the internal memory
-  sprintf(textbuffer, "Batt:   %03d %%  %04.1f V", zydtechTelemetry.soc, zydtechTelemetry.voltage);
-  u8g2.drawStr(00,50,textbuffer);	// write something to the internal memory
-  sprintf(textbuffer, "Energy: %05.1f Wh", zydtechTelemetry.energy/3600);
-  u8g2.drawStr(00,60,textbuffer);	// write something to the internal memory
-  
-  u8g2.sendBuffer();					// transfer internal memory to the display
+  char textbuffer[32] = {};
+  u8g2.clearBuffer();  // clear the internal memory
 
+  switch (displayMode) {
+    default:
+    case DISPLAY_PAGE_SUMMARY:                   // Prints a summary of data
+      u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+      sprintf(textbuffer, "Total:  %06.1f km", zydtechTelemetry.totalkm);
+      u8g2.drawStr(00, 10, textbuffer);
+      sprintf(textbuffer, "Trip:   %04.1f km", zydtechTelemetry.tripkm);
+      u8g2.drawStr(00, 20, textbuffer);
+      sprintf(textbuffer, "Speed:  %04.1f km/h", zydtechTelemetry.actualSpeed);
+      u8g2.drawStr(00, 30, textbuffer);
+      sprintf(textbuffer, "Power:  %05.1f W  %04.1f A", zydtechTelemetry.voltage * zydtechTelemetry.current, zydtechTelemetry.current);
+      u8g2.drawStr(00, 40, textbuffer);
+      sprintf(textbuffer, "Batt:   %03d %%  %04.1f V", zydtechTelemetry.soc, zydtechTelemetry.voltage);
+      u8g2.drawStr(00, 50, textbuffer);
+      sprintf(textbuffer, "Energy: %05.1f Wh", zydtechTelemetry.energy / 3600);
+      u8g2.drawStr(00, 60, textbuffer);
+      break;
+    case DISPLAY_PAGE_TRIP:                   // prints a large trip counter
+      u8g2.setFont(u8g2_font_logisoso42_tn);  // choose a suitable font
+      sprintf(textbuffer, "%04.1f Wh", zydtechTelemetry.tripkm);
+      u8g2.drawStr(20, 60, textbuffer);
+      break;
+    case DISPLAY_PAGE_BARS:                      // outputs speed (S), amps (A), volts (V), soc(B), Power (P) as bars
+      u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+      u8g2.drawStr(00, 10, "B");
+      u8g2.drawStr(00, 20, "V");
+      u8g2.drawStr(00, 30, "A");
+      u8g2.drawStr(00, 40, "P");
+      u8g2.drawStr(00, 50, "S");
+
+      for (int i = 0; i <= 40; i += 10) {
+        u8g2.drawFrame(10, i, 118, 10);
+      }
+      u8g2.drawBox(10, 0, ((float)zydtechTelemetry.soc / 100.0) * 118, 10);
+      u8g2.drawBox(10, 10, ((float)zydtechTelemetry.voltage / 42.0) * 118, 10);
+      u8g2.drawBox(10, 20, abs((float)zydtechTelemetry.current / 16.0) * 118, 10);
+      u8g2.drawBox(10, 30, abs(((float)zydtechTelemetry.voltage * (float)zydtechTelemetry.current) / 600.0) * 118, 10);
+      u8g2.drawBox(10, 40, ((float)zydtechTelemetry.actualSpeed / 30) * 118, 10);
+
+      sprintf(textbuffer, "Total:  %06.1f km", zydtechTelemetry.totalkm);
+      u8g2.drawStr(00, 60, textbuffer);
+
+      break;
+  }
+  u8g2.sendBuffer();  // transfer internal memory to the display
 }
 
 static void notifyCallback(
@@ -110,14 +145,6 @@ static void notifyCallback(
     uint8_t* pData,
     size_t length,
     bool isNotify) {
-  /*
-    Serial.print("Notify callback for characteristic ");
-    Serial.print(pBLERemoteCharacteristic->getUUID().toString().c_str());
-    Serial.print(" of data length ");
-    Serial.println(length);
-    Serial.print("data: ");
-    Serial.println((char*)pData);
-  */
   zydtechTelemetry.packet++;
 
   if (length == 25 and pData[0] == 175) {  // Telemetry Data from address 0xAF
@@ -141,7 +168,7 @@ static void notifyCallback(
       }
 
       zydtechTelemetry.timestamp = millis();
-      outputData();
+      outputData(displayMode);
 
     } else if (pData[1] == 1) {  // Packet Type 2
       zydtechTelemetry.speed1 = pData[4];
@@ -161,11 +188,19 @@ static void notifyCallback(
 
 class MyClientCallback : public BLEClientCallbacks {
   void onConnect(BLEClient* pclient) {
+    u8g2.clearBuffer();                        // clear the internal memory
+    u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+    u8g2.drawStr(0, 10, "Connected!");
+    u8g2.sendBuffer();
   }
 
   void onDisconnect(BLEClient* pclient) {
     connected = false;
     Serial.println("onDisconnect");
+    u8g2.clearBuffer();                        // clear the internal memory
+    u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+    u8g2.drawStr(0, 10, "Disconnected!");
+    u8g2.sendBuffer();
   }
 };
 
@@ -241,11 +276,13 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 };     // MyAdvertisedDeviceCallbacks
 
 void setup() {
+  u8g2.setBusClock(1000000);
   u8g2.begin();
-  u8g2.clearBuffer();					// clear the internal memory
-  u8g2.setFont(u8g2_font_busdisplay8x5_tr);	// choose a suitable font
-  u8g2.drawStr(0,10,"Hello World!");	// write something to the internal memory
-  u8g2.sendBuffer();					// transfer internal memory to the display
+  u8g2.setBusClock(1000000);
+  u8g2.clearBuffer();                        // clear the internal memory
+  u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+  u8g2.drawStr(0, 10, "Connecting...");
+  u8g2.sendBuffer();  // transfer internal memory to the display
 
   Serial.begin(115200);
   Serial.println("Starting Arduino BLE Client application...");
@@ -256,10 +293,10 @@ void setup() {
   // scan to run for 5 seconds.
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(1349);
-  pBLEScan->setWindow(449);
+  pBLEScan->setInterval(100);
+  pBLEScan->setWindow(99);
   pBLEScan->setActiveScan(true);
-  pBLEScan->start(5, false);
+  pBLEScan->start(0, false);
 }  // End of setup.
 
 // This is the Arduino main loop function.
