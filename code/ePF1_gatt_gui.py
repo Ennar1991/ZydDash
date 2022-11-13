@@ -259,7 +259,7 @@ async def main(address):
                 break
             
             if event=='-READMODEL-':
-                hwaddress=228 #228 for 365pro, 278 for ePF-1
+                hwaddress=278 #228 for Hiboy S2/365pro, 278 for ePF-1
                 send_data = await client.write_gatt_char(SEND_UUID, busRead(1, hwaddress,8))
                 time.sleep(0.1)
                 window['-MEMORYMAP-'].update(tableMap(memorymap))
@@ -271,7 +271,7 @@ async def main(address):
                 window['-MODELNAME-'].update(model.decode("iso8859-1"))
             
             if event=='-WRITEMODEL-':
-                hwaddress=228 #228 for 365pro, 278 for ePF-1
+                hwaddress=278 #228 for Hiboy S2/365pro, 278 for ePF-1
                 modelname=b''
                 model=values['-MODELNAME-'].encode().ljust(16,b' ')[:16]
                 for i in range(0,len(model),2):
@@ -284,7 +284,7 @@ async def main(address):
            
             
             if event=='-READHARDWARE-':
-                hwaddress=236 #236 for 365pro, 286 for ePF-1
+                hwaddress=286 #236 for Hiboy S2/365pro, 286 for ePF-1
                 send_data = await client.write_gatt_char(SEND_UUID, busRead(1,hwaddress,8))
                 time.sleep(0.1)
                 window['-MEMORYMAP-'].update(tableMap(memorymap))
@@ -296,7 +296,7 @@ async def main(address):
                 window['-HARDWARE-'].update(model.decode("iso8859-1"))
             
             if event=='-WRITEHARDWARE-':
-                hwaddress=236 #236 for 365pro, 286 for ePF-1
+                hwaddress=286 #236 for Hiboy S2/365pro, 286 for ePF-1
                 modelname=b''
                 model=values['-HARDWARE-'].encode().ljust(16,b' ')[:16]
                 for i in range(0,len(model),2):
