@@ -1,6 +1,8 @@
 # ZydDash
 Alternative dashboard display for Zydtech based electric scooters using BLE
 
+![ESP32 running ZydDash BLE client](https://github.com/Ennar1991/ZydDash/blob/main/pictures/ESP32_ZydDash.jpg?raw=true)
+
 Wanting to have a more permanent dashboard with more usable information while also collecting more detailed battery data and not sacrificing my phone, I went and decoded the data protocol of my ePowerFun ePF-1 which uses a Zydtech HW9027 or similar motor driver. The display has a built-in bluetooth module for communicating with an app supplied by the vendor.
 Decoding most of the Bluetooth telemetry and commands for the Display/Driver combo has been very straightforward, although there is more to discover in the Update mode. 
 
