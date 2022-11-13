@@ -6,6 +6,16 @@
 #include "BLEDevice.h"
 //#include "BLEScan.h"
 
+#include <U8g2lib.h>
+
+#ifdef U8X8_HAVE_HW_SPI
+#include <SPI.h>
+#endif
+#ifdef U8X8_HAVE_HW_I2C
+#include <Wire.h>
+#endif
+
+
 // The remote service we wish to connect to.
 static BLEAddress BLEAddress("c7:36:39:34:66:19");
 static String devicename = "HW_UG018376"; //for some reason the scooter does not transmit its MAC address without asking. Use name instead.
@@ -39,6 +49,9 @@ struct {
   float energy = 0;
 } zydtechTelemetry;
 
+//U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+
 void outputData() {
   // Prints the telemetry data to the serial interface in a formatted way
   Serial.print("Speed: ");
@@ -69,6 +82,27 @@ void outputData() {
   Serial.print(zydtechTelemetry.soc);
 
   Serial.println("%");
+
+  char textbuffer[32]={};
+  u8g2.clearBuffer();					// clear the internal memory
+  u8g2.setFont(u8g2_font_busdisplay8x5_tr);	// choose a suitable font
+  
+  
+  sprintf(textbuffer, "Total:  %06.1f km", zydtechTelemetry.totalkm);
+  u8g2.drawStr(00,10,textbuffer);	// write something to the internal memory
+  sprintf(textbuffer, "Trip:   %04.1f km", zydtechTelemetry.tripkm);
+  u8g2.drawStr(00,20,textbuffer);	// write something to the internal memory
+  sprintf(textbuffer, "Speed:  %04.1f km/h", zydtechTelemetry.actualSpeed);
+  u8g2.drawStr(00,30,textbuffer);	// write something to the internal memory
+  sprintf(textbuffer, "Power:  %05.1f W  %04.1f A", zydtechTelemetry.voltage*zydtechTelemetry.current, zydtechTelemetry.current);
+  u8g2.drawStr(00,40,textbuffer);	// write something to the internal memory
+  sprintf(textbuffer, "Batt:   %03d %%  %04.1f V", zydtechTelemetry.soc, zydtechTelemetry.voltage);
+  u8g2.drawStr(00,50,textbuffer);	// write something to the internal memory
+  sprintf(textbuffer, "Energy: %05.1f Wh", zydtechTelemetry.energy/3600);
+  u8g2.drawStr(00,60,textbuffer);	// write something to the internal memory
+  
+  u8g2.sendBuffer();					// transfer internal memory to the display
+
 }
 
 static void notifyCallback(
@@ -207,6 +241,12 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 };     // MyAdvertisedDeviceCallbacks
 
 void setup() {
+  u8g2.begin();
+  u8g2.clearBuffer();					// clear the internal memory
+  u8g2.setFont(u8g2_font_busdisplay8x5_tr);	// choose a suitable font
+  u8g2.drawStr(0,10,"Hello World!");	// write something to the internal memory
+  u8g2.sendBuffer();					// transfer internal memory to the display
+
   Serial.begin(115200);
   Serial.println("Starting Arduino BLE Client application...");
   BLEDevice::init("");
