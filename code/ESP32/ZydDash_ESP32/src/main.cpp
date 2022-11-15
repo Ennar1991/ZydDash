@@ -15,8 +15,18 @@
 #include <Wire.h>
 #endif
 
+#define BTN_SWITCH_SCREEN 5 /* Connect a button to GND here to switch display screens */
+#define BTN_MIN 1
+#define BTN_MAX 100
+char btnCnt = 0;    // counts up when physical button is pressed. Counts down when physical button is released.
+bool btnState = false;  // is false when logical button is in released state and true when logical button is in pressed state
+bool btnPulse = false;  // is true for one loop iteration when btnState becomes true
+
+uint32_t telemetryMillis = 0;  // Internal variable to determine when next to ask for telemetry
+uint32_t scanMillis = 0;       // Internal BLE scan interval helper to get rid of delay() in loop
+
 // The remote service we wish to connect to.
-static BLEAddress BLEAddress("c7:36:39:34:66:19");
+static BLEAddress BLEAddr("c7:36:39:34:66:19");
 static String devicename = "HW_UG018376";  // for some reason the scooter does not transmit its MAC address without asking. Use name instead.
 static BLEUUID serviceUUID("0000f1f0-0000-1000-8000-00805f9b34fb");
 // The characteristic of the remote service we are interested in.
@@ -111,6 +121,8 @@ void outputData(displayModes displayMode) {
       u8g2.drawStr(00, 60, textbuffer);
       break;
     case DISPLAY_PAGE_TRIP:                   // prints a large trip counter
+      u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+      u8g2.drawStr(50, 10, "TRIP");
       u8g2.setFont(u8g2_font_logisoso42_tn);  // choose a suitable font
       sprintf(textbuffer, "%04.1f Wh", zydtechTelemetry.tripkm);
       u8g2.drawStr(20, 60, textbuffer);
@@ -127,7 +139,7 @@ void outputData(displayModes displayMode) {
         u8g2.drawFrame(10, i, 118, 10);
       }
       u8g2.drawBox(10, 0, ((float)zydtechTelemetry.soc / 100.0) * 118, 10);
-      u8g2.drawBox(10, 10, (((float)zydtechTelemetry.voltage-31) / 11.0) * 118, 10);
+      u8g2.drawBox(10, 10, (((float)zydtechTelemetry.voltage - 31) / 11.0) * 118, 10);
       u8g2.drawBox(10, 20, abs((float)zydtechTelemetry.current / 16.0) * 118, 10);
       u8g2.drawBox(10, 30, abs(((float)zydtechTelemetry.voltage * (float)zydtechTelemetry.current) / 600.0) * 118, 10);
       u8g2.drawBox(10, 40, ((float)zydtechTelemetry.actualSpeed / 30) * 118, 10);
@@ -137,6 +149,11 @@ void outputData(displayModes displayMode) {
 
       break;
   }
+  //Debug output: Button
+  //u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+  //sprintf(textbuffer, "%d", btnCnt);
+  //u8g2.drawStr(100, 60, textbuffer);
+
   u8g2.sendBuffer();  // transfer internal memory to the display
 }
 
@@ -201,6 +218,7 @@ class MyClientCallback : public BLEClientCallbacks {
     u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
     u8g2.drawStr(0, 10, "Disconnected!");
     u8g2.sendBuffer();
+    doScan = true;
   }
 };
 
@@ -276,6 +294,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 };     // MyAdvertisedDeviceCallbacks
 
 void setup() {
+  pinMode(BTN_SWITCH_SCREEN, INPUT_PULLUP);
+
   u8g2.setBusClock(1000000);
   u8g2.begin();
   u8g2.setBusClock(1000000);
@@ -307,23 +327,66 @@ void loop() {
   if (doConnect == true) {
     if (connectToServer()) {
       Serial.println("We are now connected to the BLE Server.");
+      doScan = false;
     } else {
       Serial.println("We have failed to connect to the server; there is nothin more we will do.");
+      doScan = true;
     }
     doConnect = false;
   }
 
   // If we are connected to a peer BLE Server, update the characteristic each time we are reached
   // with the current time since boot.
-  if (connected) {
+  if (connected && millis() > telemetryMillis) {
+    telemetryMillis = millis() + 1000;
     String newValue = "A";
     // Serial.println("Setting new characteristic value to \"" + newValue + "\"");
 
     // Set the characteristic's value to be the array of bytes that is actually a string.
     pWriteCharacteristic->writeValue(newValue.c_str(), newValue.length());
-  } else if (doScan) {
+  } else if (doScan && millis() > scanMillis) {
+    // scanMillis=millis()+5000;
+    doScan = false;
     BLEDevice::getScan()->start(0);  // this is just example to start scan after disconnect, most likely there is better way to do it in arduino
   }
 
-  delay(1000);  // Delay a second between loops.
+  // debounced button handling
+  if (digitalRead(BTN_SWITCH_SCREEN) == 0) {  // physical button
+    btnCnt++;
+
+  } else if (digitalRead(BTN_SWITCH_SCREEN) == 1) {
+    btnCnt--;
+    btnPulse = false;
+  }
+
+  if (btnCnt <= BTN_MIN) {
+    btnCnt = BTN_MIN;
+    btnState = false;
+  }
+
+  if (btnCnt == BTN_MAX && btnState == false) {
+    btnPulse = true;  // generate ONE impulse when counting up
+    btnState = true;
+    btnCnt = BTN_MAX;
+  } else {
+    btnPulse = false;  // generate ONE impulse when counting up
+  }
+
+  if (btnCnt > BTN_MAX) btnCnt = BTN_MAX;
+
+  if (btnPulse) {
+    switch (displayMode) {
+      case DISPLAY_PAGE_BARS:
+        displayMode = DISPLAY_PAGE_SUMMARY;
+        break;
+      case DISPLAY_PAGE_SUMMARY:
+        displayMode = DISPLAY_PAGE_TRIP;
+        break;
+      case DISPLAY_PAGE_TRIP:
+        displayMode = DISPLAY_PAGE_BARS;
+        break;
+    }
+  }
+
+  delay(1);  // Throttle main loop and yield control
 }  // End of loop
