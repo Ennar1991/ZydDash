@@ -127,7 +127,7 @@ void outputData(displayModes displayMode) {
         u8g2.drawFrame(10, i, 118, 10);
       }
       u8g2.drawBox(10, 0, ((float)zydtechTelemetry.soc / 100.0) * 118, 10);
-      u8g2.drawBox(10, 10, ((float)zydtechTelemetry.voltage / 42.0) * 118, 10);
+      u8g2.drawBox(10, 10, (((float)zydtechTelemetry.voltage-31) / 11.0) * 118, 10);
       u8g2.drawBox(10, 20, abs((float)zydtechTelemetry.current / 16.0) * 118, 10);
       u8g2.drawBox(10, 30, abs(((float)zydtechTelemetry.voltage * (float)zydtechTelemetry.current) / 600.0) * 118, 10);
       u8g2.drawBox(10, 40, ((float)zydtechTelemetry.actualSpeed / 30) * 118, 10);
