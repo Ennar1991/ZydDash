@@ -25,8 +25,23 @@ bool btnPulse = false;  // is true for one loop iteration when btnState becomes 
 uint32_t telemetryMillis = 0;  // Internal variable to determine when next to ask for telemetry
 uint32_t scanMillis = 0;       // Internal BLE scan interval helper to get rid of delay() in loop
 
-// The remote service we wish to connect to.
+//Select an appropriate display from these presets or change to another type (see u8g2 wiki)
+//These are the most common OLED displays
+// U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
+
+//YOUR SCOOTER DATA HERE
+//Scooter name (Bluetooth name)
 static String devicename = "HW_EPF1";  // for some reason the scooter does not transmit its MAC address without asking. Use name instead.
+
+//Select one of the following systems
+#define SYSTEM_36V
+//#define SYSTEM_48V
+//#define SYSTEM_52V
+//#define SYSTEM_60V
+//#define SYSTEM_CUSTOM
+
+// The remote service we wish to connect to.
 static BLEUUID serviceUUID("0000f1f0-0000-1000-8000-00805f9b34fb");
 // The characteristic of the remote service we are interested in.
 static BLEUUID sendUUID("0000f1f1-0000-1000-8000-00805f9b34fb");  // Transmit Channel  CLI--> SRV
@@ -66,8 +81,30 @@ enum displayModes {
 
 displayModes displayMode = DISPLAY_PAGE_BARS;
 
-// U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
+
+#ifdef SYSTEM_36V
+float MinVoltage=31.0; //Minimum discharge voltage (for bargraph), usually 3.1 to 3.2 V per cell
+float MaxVoltage=42.0; //Maximum charge voltage, usually 4.2 V per cell
+#endif
+#ifdef SYSTEM_48V
+float MinVoltage=37.2;
+float MaxVoltage=50.4;
+#endif
+#ifdef SYSTEM_52V
+float MinVoltage=43.4;
+float MaxVoltage=58.8;
+#endif
+#ifdef SYSTEM_60V
+float MinVoltage=46.5;
+float MaxVoltage=63.0;
+#endif
+
+//You're free to enter a custom setup here
+#ifdef SYSTEM_CUSTOM
+float MinVoltage=0.0;
+float MaxVoltage=100.0;
+#endif
+
 
 void outputData(displayModes displayMode) {
   // Prints the telemetry data to the serial interface in a formatted way
@@ -131,7 +168,7 @@ void outputData(displayModes displayMode) {
       u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
       u8g2.drawStr(42, 10, "POWER");
       u8g2.setFont(u8g2_font_logisoso42_tn);  // choose a suitable font
-      sprintf(textbuffer, "%04.1f", zydtechTelemetry.voltage * zydtechTelemetry.current);
+      sprintf(textbuffer, "%04d", (int)(zydtechTelemetry.voltage * zydtechTelemetry.current));
       u8g2.drawStr(20, 60, textbuffer);
       break;
   
@@ -148,7 +185,7 @@ void outputData(displayModes displayMode) {
         u8g2.drawFrame(10, i, 118, 10);
       }
       u8g2.drawBox(10, 0, ((float)zydtechTelemetry.soc / 100.0) * 118, 10);
-      u8g2.drawBox(10, 10, (((float)zydtechTelemetry.voltage - 31) / 11.0) * 118, 10);
+      u8g2.drawBox(10, 10, (((float)zydtechTelemetry.voltage - MinVoltage) / (MaxVoltage-MinVoltage)) * 118, 10);
       u8g2.drawBox(10, 20, abs((float)zydtechTelemetry.current / 16.0) * 118, 10);
       u8g2.drawBox(10, 30, abs(((float)zydtechTelemetry.voltage * (float)zydtechTelemetry.current) / 600.0) * 118, 10);
       u8g2.drawBox(10, 40, ((float)zydtechTelemetry.actualSpeed / 30) * 118, 10);
@@ -319,8 +356,14 @@ void setup() {
   u8g2.begin();
   u8g2.setBusClock(1000000);
   u8g2.clearBuffer();                        // clear the internal memory
+  
   u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
-  u8g2.drawStr(0, 10, "Connecting...");
+  u8g2.drawStr(0, 20, "*ZydDash BLE*");
+  u8g2.drawStr(0, 30, "2022 by Ennar");
+  
+  u8g2.drawStr(0, 50, "Connecting to");
+  u8g2.drawStr(0, 60, devicename.c_str());
+  
   u8g2.sendBuffer();  // transfer internal memory to the display
 
   Serial.begin(115200);
@@ -402,6 +445,9 @@ void loop() {
         displayMode = DISPLAY_PAGE_TRIP;
         break;
       case DISPLAY_PAGE_TRIP:
+        displayMode = DISPLAY_PAGE_WATTS;
+        break;
+      case DISPLAY_PAGE_WATTS:
         displayMode = DISPLAY_PAGE_BARS;
         break;
     }
