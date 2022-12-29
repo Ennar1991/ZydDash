@@ -104,9 +104,9 @@ Byte | Value | Explanation, function
 12 | 0x00 | Amperage High-Byte (16 Bit total)
 13 | 0x00 | Amperage Low-Byte, A*0.01 (Example: 0x001F=31=0.31 A)
 14 | 0x18 | Temperature in °C (Example: 0x18=24=24 °C)
-15 | 0x00 | Trip distance High-Byte (24 Bit total)
-16 | 0x01 | Trip distance  Middle-Byte
-17 | 0x10 | Trip distance  Low-Byte, km*0.1 (Example: 0x000110=272=27.2 km)
+15 | 0x00 | Unknown, Padding? Always "D9" with Hiboy S2 firmware
+16 | 0x01 | Trip distance  High-Byte (16 Bit total)
+17 | 0x10 | Trip distance  Low-Byte, km*0.1 (Example: 0x0110=272=27.2 km)
 18 | 0x00 | Total distance High-Byte (24 Bit total)
 19 | 0x01 | Total distance Middle-Byte
 20 | 0x10 | Total distance Low-Byte, km*0.1 (Example: 0x000110=272=27.2 km)

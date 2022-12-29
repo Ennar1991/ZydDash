@@ -26,8 +26,7 @@ uint32_t telemetryMillis = 0;  // Internal variable to determine when next to as
 uint32_t scanMillis = 0;       // Internal BLE scan interval helper to get rid of delay() in loop
 
 // The remote service we wish to connect to.
-static BLEAddress BLEAddr("c7:36:39:34:66:19");
-static String devicename = "HW_UG018376";  // for some reason the scooter does not transmit its MAC address without asking. Use name instead.
+static String devicename = "HW_EPF1";  // for some reason the scooter does not transmit its MAC address without asking. Use name instead.
 static BLEUUID serviceUUID("0000f1f0-0000-1000-8000-00805f9b34fb");
 // The characteristic of the remote service we are interested in.
 static BLEUUID sendUUID("0000f1f1-0000-1000-8000-00805f9b34fb");  // Transmit Channel  CLI--> SRV
@@ -61,7 +60,8 @@ struct {
 enum displayModes {
   DISPLAY_PAGE_SUMMARY,
   DISPLAY_PAGE_TRIP,
-  DISPLAY_PAGE_BARS
+  DISPLAY_PAGE_BARS,
+  DISPLAY_PAGE_WATTS
 };
 
 displayModes displayMode = DISPLAY_PAGE_BARS;
@@ -124,9 +124,18 @@ void outputData(displayModes displayMode) {
       u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
       u8g2.drawStr(50, 10, "TRIP");
       u8g2.setFont(u8g2_font_logisoso42_tn);  // choose a suitable font
-      sprintf(textbuffer, "%04.1f Wh", zydtechTelemetry.tripkm);
+      sprintf(textbuffer, "%04.1f Km", zydtechTelemetry.tripkm);
       u8g2.drawStr(20, 60, textbuffer);
       break;
+    case DISPLAY_PAGE_WATTS:                   // prints a large wattmeter
+      u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
+      u8g2.drawStr(42, 10, "POWER");
+      u8g2.setFont(u8g2_font_logisoso42_tn);  // choose a suitable font
+      sprintf(textbuffer, "%04.1f", zydtechTelemetry.voltage * zydtechTelemetry.current);
+      u8g2.drawStr(20, 60, textbuffer);
+      break;
+  
+
     case DISPLAY_PAGE_BARS:                      // outputs speed (S), amps (A), volts (V), soc(B), Power (P) as bars
       u8g2.setFont(u8g2_font_busdisplay8x5_tr);  // choose a suitable font
       u8g2.drawStr(00, 10, "B");
@@ -155,6 +164,7 @@ void outputData(displayModes displayMode) {
   //u8g2.drawStr(100, 60, textbuffer);
 
   u8g2.sendBuffer();  // transfer internal memory to the display
+  
 }
 
 static void notifyCallback(
@@ -174,9 +184,9 @@ static void notifyCallback(
       if (pData[12] < 128)
         zydtechTelemetry.current = (pData[12] * 256 + pData[13]) * 0.01;
       else
-        zydtechTelemetry.current = (65536 - (pData[12] * 256 + pData[13])) * (-0.01);
+        zydtechTelemetry.current = (65535 - (pData[12] * 256 + pData[13])) * (-0.01);
       zydtechTelemetry.temperature = pData[14];
-      zydtechTelemetry.tripkm = (pData[15] * 65536 + pData[16] * 256 + pData[17]) * 0.1;
+      zydtechTelemetry.tripkm = (pData[16] * 256 + pData[17]) * 0.1; //pData[15] * 65536 Byte 15 might have a different role, discovered with Hiboy firmware
       zydtechTelemetry.totalkm = (pData[18] * 65536 + pData[19] * 256 + pData[20]) * 0.1;
 
       // Calculate used energy (Ws) since boot
@@ -185,6 +195,15 @@ static void notifyCallback(
       }
 
       zydtechTelemetry.timestamp = millis();
+
+      //Debug output of raw data
+      /*
+      for(int i=0; i<length;i++) {
+        Serial.print(pData[i],HEX);
+        Serial.print('-');
+      }
+      Serial.println();
+      */
       outputData(displayMode);
 
     } else if (pData[1] == 1) {  // Packet Type 2
